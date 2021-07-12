@@ -1,47 +1,106 @@
+/* ************************************************************************** */
+/*                                                                            */
+/*                                                        :::      ::::::::   */
+/*   get_next_line.c                                    :+:      :+:    :+:   */
+/*                                                    +:+ +:+         +:+     */
+/*   By: lgeoffro <lgeoffro@student.42.fr>          +#+  +:+       +#+        */
+/*                                                +#+#+#+#+#+   +#+           */
+/*   Created: 2021/07/12 15:39:29 by lgeoffro          #+#    #+#             */
+/*   Updated: 2021/07/12 15:39:38 by lgeoffro         ###   ########.fr       */
+/*                                                                            */
+/* ************************************************************************** */
+
 #include "get_next_line.h"
 
-char	*ft_add_line(char *buf, char **line)
+char	*copy_until_EOL(char *stock)
 {
-	char	*tmp;
+	int		i;
+	int		len;
+	char	*line;
 
-	tmp = ft_strchr(buf, '\n');
-	if (tmp)
+	i = 0;
+	while (stock[i] != '\n' && stock[i] != '\0')
 	{
-		*tmp++ = '\0';
-		*line = ft_strjoin(*line, buf);
-		*line = ft_strjoin(*line, "\n");
-		ft_strcpy(buf, tmp);
+		i++;
+	}
+	len = i + 1;
+	line = (char *)malloc(sizeof(char) * (i + 1));
+	if (!line)
+		return (NULL);
+	i = 0;
+	while (i < len)
+	{
+		line[i] = stock[i];
+		i++;
+	}
+	line[i] = '\0';
+	return (line);
+}
+
+void	get_the_spare(char *buf)
+{
+	int		i;
+	int		j;
+
+	i = 0;
+	j = 0;
+	while (buf[i] != '\n')
+		i++;
+	i = i + 1;
+	while (i < BUFFER_SIZE)
+	{
+		buf[j] = buf[i];
+		j++;
+		i++;
+	}
+	buf[j] = '\0';
+}
+
+char	*get_next_line_2(size_t ret, char *stock, char *buf)
+{
+	char	*line;
+
+	line = NULL;
+	if (*stock == '\0')
+	{
+		free(stock);
+		return (NULL);
+	}
+	if (ret > 0)
+	{
+		line = copy_until_EOL(stock);
+		free(stock);
+		get_the_spare(buf);
 	}
 	else
-		*line = ft_strjoin(*line, buf);
-	return (tmp);
+	{
+		line = copy_until_EOL(stock);
+		free(stock);
+	}
+	return (line);
 }
 
 char	*get_next_line(int fd)
 {
-	char		*tmp;
-	char		*line;
-	static char	buf[SIZE + 1];
-	static int	eof = 1;
+	size_t		ret;
+	char		*stock;
+	static char	buf[BUFFER_SIZE + 1];
 
-	if (read(fd, buf, 0) == -1 || SIZE == 0 || eof == -1)
+	if (BUFFER_SIZE <= 0 || read(fd, buf, 0) == -1)
 		return (NULL);
-	line = ft_strdup("");
-	if (NULL == line)
-		return (NULL);
-	tmp = ft_add_line(buf, &line);
-	while (eof > 0 && !tmp)
+	stock = NULL;
+	stock = ft_strjoin(stock, buf);
+	ret = 1;
+	while (ret > 0 && ft_strchr(stock, '\n') == 0)
 	{
-		eof = read(fd, buf, SIZE);
-		if (eof == -1)
+		ret = read(fd, buf, BUFFER_SIZE);
+		if (ret < 0)
 		{
-			free(line);
+			free(stock);
 			return (NULL);
 		}
-		buf[eof] = '\0';
-		tmp = ft_add_line(buf, &line);
+		buf[ret] = '\0';
+		stock = ft_strjoin(stock, buf);
 	}
-	if (eof == 0 && !tmp)
-		eof = -1;
-	return (line);
+	return (get_next_line_2(ret, stock, buf));
 }
