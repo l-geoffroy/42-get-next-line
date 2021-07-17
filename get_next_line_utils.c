@@ -5,81 +5,110 @@
 /*                                                    +:+ +:+         +:+     */
 /*   By: lgeoffro <lgeoffro@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2021/07/12 15:39:45 by lgeoffro          #+#    #+#             */
-/*   Updated: 2021/07/12 15:39:46 by lgeoffro         ###   ########.fr       */
+/*   Created: 2021/07/17 15:33:47 by lgeoffro          #+#    #+#             */
+/*   Updated: 2021/07/17 15:33:48 by lgeoffro         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "get_next_line.h"
 
-size_t	ft_strlen(const char *str)
+void	*ft_calloc(size_t nmemb, size_t size)
+{
+	size_t			total_size;
+	unsigned char	*allocated;
+	size_t			i;
+
+	total_size = size * nmemb;
+	allocated = (unsigned char *)malloc(total_size);
+	i = 0;
+	if (allocated == 0)
+		return (NULL);
+	while (i < size)
+	{
+		allocated[i] = '\0';
+		i++;
+	}
+	return (allocated);
+}
+
+int	ft_strchr_GNL(char *s, char c)
 {
 	int	i;
 
-	if (!str)
-		return (0);
 	i = 0;
-	while (str[i] != '\0')
-		i++;
-	return (i);
-}
-
-char	*ft_strchr(char *s, int c)
-{
-	while (*s)
+	if (!s)
+		return (HAVNT_BRK_LINE);
+	while (s[i])
 	{
-		if (*s == c)
-			return ((char *)s);
-		s++;
+		if (s[i] == c)
+			return (HAV_BRK_LINE);
+		i++;
 	}
-	if (c == '\0' && *s == c)
-		return ((char *)s);
-	else
-		return (0);
+	if (s[i] == c)
+		return (HAV_BRK_LINE);
+	return (HAVNT_BRK_LINE);
 }
 
-char	*ft_strdup(const char *s1)
+int	ft_strlen(char *str)
 {
 	int		i;
-	char	*dst;
 
 	i = 0;
-	dst = malloc(sizeof(char) * (ft_strlen(s1) + 1));
-	if (!dst)
-		return (NULL);
-	while (s1[i] != '\0')
+	while (str[i] != '\0')
 	{
-		dst[i] = s1[i];
 		i++;
 	}
-	dst[i] = '\0';
-	return (dst);
+	return (i);
 }
 
 char	*ft_strjoin(char *s1, char *s2)
 {
-	size_t	i;
-	size_t	j;
-	char	*new_str;
+	int		i;
+	int		j;
+	char	*concat;
 
 	i = 0;
 	j = 0;
-	if (s1 == NULL)
-		return (ft_strdup(s2));
-	new_str = (char *)malloc(sizeof(char)
-			* (ft_strlen(s1) + ft_strlen(s2)) + 1);
-	if (!new_str)
+	concat = (char *)ft_calloc(sizeof(char), ft_strlen(s1) + ft_strlen(s2) + 1);
+	if (!concat)
 		return (NULL);
 	while (s1[i])
 	{
-		new_str[j++] = s1[i++];
+		concat[i] = s1[i];
+		i++;
 	}
-	i = 0;
-	while (s2[i])
+	while (s2[j])
 	{
-		new_str[j++] = s2[i++];
+		concat[i] = s2[j];
+		i++;
+		j++;
 	}
-	new_str[j] = '\0';
-	free(s1);
-	return (new_str);
+	concat[i] = '\0';
+	return (concat);
+}
+
+char	*ft_substr(char *s, unsigned int start, size_t len)
+{
+	char	*sub;
+	size_t	size_s;
+	size_t	max_len;
+
+	size_s = ft_strlen(s);
+	if (s == NULL)
+		return (NULL);
+	if (size_s < start)
+	{
+		sub = (char *)ft_calloc(sizeof(char), 1);
+		if (!sub)
+			return (NULL);
+		return (sub);
+	}
+	max_len = size_s - start;
+	if (len > max_len)
+		len = max_len;
+	sub = (char *)ft_calloc(sizeof(char), len + 1);
+	if (!sub)
+		return (NULL);
+	ft_strlcpy(sub, &s[start], len + 1);
+	return (sub);
 }

@@ -5,102 +5,118 @@
 /*                                                    +:+ +:+         +:+     */
 /*   By: lgeoffro <lgeoffro@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2021/07/12 15:39:29 by lgeoffro          #+#    #+#             */
-/*   Updated: 2021/07/12 15:39:38 by lgeoffro         ###   ########.fr       */
+/*   Created: 2021/07/17 15:33:42 by lgeoffro          #+#    #+#             */
+/*   Updated: 2021/07/17 15:33:56 by lgeoffro         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "get_next_line.h"
 
-char	*copy_until_EOL(char *stock)
+size_t	ft_strlcpy(char *dst, char *src, size_t size)
 {
-	int		i;
-	int		len;
-	char	*line;
+	size_t	i;
 
 	i = 0;
-	while (stock[i] != '\n' && stock[i] != '\0')
+	if ((src == 0) || (dst == 0))
+		return (0);
+	if (size > 0)
 	{
-		i++;
+		while (i < (size - 1) && src[i] != '\0')
+		{
+			dst[i] = src[i];
+			i++;
+		}
+		dst[i] = '\0';
 	}
-	len = i + 1;
-	line = (char *)malloc(sizeof(char) * (i + 1));
-	if (!line)
-		return (NULL);
-	i = 0;
-	while (i < len)
-	{
-		line[i] = stock[i];
-		i++;
-	}
-	line[i] = '\0';
-	return (line);
+	return (ft_strlen(src));
 }
 
-void	get_the_spare(char *buf)
+int	read_and_join(int fd, char **buf_of_read,
+						char **buf_of_line, int *bytes)
 {
-	int		i;
-	int		j;
+	char	*temporary_of_read;
 
-	i = 0;
-	j = 0;
-	while (buf[i] != '\n')
-		i++;
-	i = i + 1;
-	while (i < BUFFER_SIZE)
+	while (*bytes && ft_strchr_GNL(*buf_of_read, '\n') == HAVNT_BRK_LINE)
 	{
-		buf[j] = buf[i];
-		j++;
-		i++;
+		*bytes = read(fd, *buf_of_line, BUFFER_SIZE);
+		(*buf_of_line)[*bytes] = '\0';
+		if (*bytes < 0 || *bytes > BUFFER_SIZE)
+		{
+			free(*buf_of_line);
+			return (-1);
+		}
+		temporary_of_read = *buf_of_read;
+		*buf_of_read = ft_strjoin(temporary_of_read, *buf_of_line);
+		free(temporary_of_read);
 	}
-	buf[j] = '\0';
+	free(*buf_of_line);
+	return (READ_AND_JOINED_OR_EOF);
 }
 
-char	*get_next_line_2(size_t ret, char *stock, char *buf)
+char	*make_line_and_buf_of_read(char **line, char *buf_of_read, int bytes)
 {
-	char	*line;
+	int		position_of_brkline;
+	int		len_of_buf_of_read;
+	char	*new_buf_of_read;
 
-	line = NULL;
-	if (*stock == '\0')
+	position_of_brkline = 0;
+	len_of_buf_of_read = 0;
+	new_buf_of_read = NULL;
+	while (buf_of_read[position_of_brkline] != '\n'
+		&& buf_of_read[position_of_brkline] != '\0')
+		position_of_brkline++;
+	*line = ft_substr(buf_of_read, 0, position_of_brkline + 1);
+	if (bytes)
 	{
-		free(stock);
-		return (NULL);
+		if (buf_of_read[position_of_brkline] == '\n')
+			position_of_brkline++;
+		len_of_buf_of_read = ft_strlen(buf_of_read + position_of_brkline);
+		new_buf_of_read = ft_substr(buf_of_read, position_of_brkline,
+				len_of_buf_of_read);
+		if (!new_buf_of_read)
+			return (NULL);
 	}
-	if (ret > 0)
+	free(buf_of_read);
+	return (new_buf_of_read);
+}
+
+int	lastline(char **line, int bytes)
+{
+	if (!bytes && *line[0] == '\0')
 	{
-		line = copy_until_EOL(stock);
-		free(stock);
-		get_the_spare(buf);
+		free(*line);
+		return (1);
 	}
-	else
-	{
-		line = copy_until_EOL(stock);
-		free(stock);
-	}
-	return (line);
+	return (0);
 }
 
 char	*get_next_line(int fd)
 {
-	size_t		ret;
-	char		*stock;
-	static char	buf[BUFFER_SIZE + 1];
+	static char		*buf_of_read;
+	char			*line;
+	char			*buf_of_line;
+	int				bytes;
+	int				verification;
 
-	if (BUFFER_SIZE <= 0 || read(fd, buf, 0) == -1)
-		return (NULL);
-	stock = NULL;
-	stock = ft_strjoin(stock, buf);
-	ret = 1;
-	while (ret > 0 && ft_strchr(stock, '\n') == 0)
+	line = NULL;
+	bytes = 1;
+	buf_of_line = NULL;
+	if (fd < 0 || BUFFER_SIZE <= 0 || fd > MAX_FILE_DESCRIPTOR || read(fd, buf_of_line, 0) == -1)
+		return (GNL_ERROR);
+	if (!buf_of_read)
 	{
-		ret = read(fd, buf, BUFFER_SIZE);
-		if (ret < 0)
-		{
-			free(stock);
-			return (NULL);
-		}
-		buf[ret] = '\0';
-		stock = ft_strjoin(stock, buf);
+		buf_of_read = (char *)ft_calloc(1, 1);
+		if (!buf_of_read)
+			return (GNL_ERROR);
 	}
-	return (get_next_line_2(ret, stock, buf));
+	buf_of_line = (char *)ft_calloc(sizeof(char), BUFFER_SIZE + 1);
+	if (!buf_of_line)
+		return (GNL_ERROR);
+	verification = read_and_join(fd, &buf_of_read, &buf_of_line, &bytes);
+	if (verification == -1)
+		return (GNL_ERROR);
+	buf_of_read = make_line_and_buf_of_read(&line, buf_of_read, bytes);
+	if (lastline(&line, bytes))
+		return (GNL_FOUND_EOF);
+	return (line);
 }
